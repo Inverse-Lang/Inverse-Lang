@@ -1,2 +1,7 @@
+*~
+\#*
+.#*
+.DS_Store
 *.bak
-*.2
+TAGS
+*\compiled
