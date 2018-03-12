@@ -4,12 +4,17 @@
 (require (prefix-in un: racket))
 (require (for-syntax syntax/parse))
 
-(provide #%module-begin)
+(provide #%module-begin
+         (rename-out
+          [define-ninv define]
+          [lambda-ninv lambda]
+          [lambda-ninv λ]
+          [apply-func #%app]))
 
 ; Define a constant
 ; Provides a shorthand to define a non-invertible function
 ; which expands to a lambda
-(define-syntax define-func-ninv
+(define-syntax define-ninv
   (syntax-parser
     [(_ (name args ...) body)
      #'(un:define name (lambda-ninv (args ...) body))]
