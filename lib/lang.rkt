@@ -52,6 +52,8 @@
 (define-syntax construct-inverse
   (syntax-parser
     [(_ inner (invertiblefunc ifuncarg) correctarg)
+     #:fail-unless (not (contains #'invertiblefunc #'correctarg))
+     "Argument to auto-invertible function can only be used in the innermost function call"
      #'(construct-inverse (apply-func (invert invertiblefunc) inner) ifuncarg correctarg)]
     [(_ inner arg correctarg)
      #:fail-unless (equal? (syntax-e #'arg) (syntax-e #'correctarg))
@@ -59,7 +61,14 @@
       "Expected ~a, got ~a. "
       (syntax->datum #'correctarg) (syntax->datum #'arg))
      #'inner]))
-     
+
+(define-for-syntax (contains stx id-to-look-for) 
+  (syntax-parse stx
+    [(stuff ...) (ormap
+                  (lambda (sx) (or (equal? (syntax-e sx) (syntax-e id-to-look-for))
+                                   (contains sx id-to-look-for)))
+                  (syntax->list #'(stuff ...)))]
+    [stuff (equal? (syntax-e #'stuff) (syntax-e id-to-look-for))]))
 
 ; Invert an invertible function
 (define (invert func)
