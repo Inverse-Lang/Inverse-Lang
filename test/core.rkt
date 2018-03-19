@@ -12,17 +12,18 @@
                                     (- x n))))
 (define muln (λ (n)
                (λ-create-invertible (x)
-                 (* x n)
-                 (/ x n))))
+                                    (* x n)
+                                    (/ x n))))
 
 (define c-to-f (lambda-auto-invert
                 (x)
                 ((addn 32) ((muln 9/5) x))))
 (define f-to-c (invert c-to-f))
 
+; This should not work
 (define g (lambda-auto-invert
            (x)
-           ((addn -4) ((addn 5) x))))
+           ((addn (λ (x)(+ x 1))) ((addn 5) x))))
 (define q (lambda-auto-invert(x) ((muln 2) (g x))))
 
 (c-to-f 0)
