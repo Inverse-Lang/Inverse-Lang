@@ -13,6 +13,7 @@
          lambda-create-invertible
          lambda-auto-invert
          invert
+         declare-invertible
          + - / *
          (rename-out
           [apply-func #%app]
@@ -46,6 +47,30 @@
     [(_ funcarg)
      (displayln #'funcarg)
      #'funcarg]))
+
+(define (proc-takes-one-arg func)
+  (and (procedure? func) (procedure-arity-includes? func 1)))
+
+(define-for-syntax decl-top-err "Declarations must be at top level")
+
+(define-syntax declare-invertible
+  (syntax-parser
+    [(_ func1:id func2:id)
+     #:fail-unless (equal? (syntax-local-context) 'module) decl-top-err
+     #'(if (and (proc-takes-one-arg func1)
+                (proc-takes-one-arg func2))
+           (begin (set! func1 (invfunc-wrap func1 func2))
+                  (set! func2 (invert func1)))
+           (error "Cannot declare these invertible"))]
+    [(_ func1:id func2)
+     #:fail-unless (equal? (syntax-local-context) 'module) decl-top-err
+     #'(if (and (proc-takes-one-arg func1)
+                (proc-takes-one-arg func2))
+           (set! func1 (invfunc-wrap func1 func2))
+           (error "Cannot declare these invertible"))]
+    [(_ func1 func2:id)
+     #:fail-unless (equal? (syntax-local-context) 'module) decl-top-err
+     #'(declare-invertible func2 func1)]))
   
 ; Construct the inverse of the body of a function
 ; ACCUMULATOR: inner represents the inverses of outer function calls
@@ -55,8 +80,8 @@
      #:fail-unless (not (contains (local-expand #'invertiblefunc 'expression '()) #'correctarg))
      "Argument to auto-invertible function can only be used in the innermost function call"
      #'(construct-inverse (apply-func (invert invertiblefunc) inner) ifuncarg correctarg)]
-    [(_ inner arg correctarg)
-     #:fail-unless (equal? (syntax-e #'arg) (syntax-e #'correctarg))
+    [(_ inner arg:id correctarg:id)
+     #:fail-unless (free-identifier=? #'arg #'correctarg)
      (format
       "Expected ~a, got ~a. "
       (syntax->datum #'correctarg) (syntax->datum #'arg))
@@ -67,10 +92,8 @@
     [(stuff ...) (ormap
                   (lambda (sx) (contains sx id-to-look-for))
                   (syntax->list #'(stuff ...)))]
-    [stuff (displayln id-to-look-for)
-           (displayln #'stuff)
-                      
-     (and (identifier? #'stuff) (free-identifier=? #'stuff id-to-look-for)) #;(equal? (syntax-e #'stuff) (syntax-e id-to-look-for))]))
+    [stuff                
+     (and (identifier? #'stuff) (free-identifier=? #'stuff id-to-look-for))]))
 
 ; Invert an invertible function
 (define (invert func)
@@ -83,8 +106,20 @@
 (define-syntax apply-func
   (syntax-parser
     [(_ func args ...)
-     #'(let ((realfunc
-              (cond
-                [(invfunc-wrap? func) (invfunc-wrap-func func)]
-                [(procedure? func) func])))
-         (un:#%app realfunc args ...))])) 
+     #'(let ((arguments (list args ...)))
+         (cond
+           [(invfunc-wrap? func)
+            (if (not (= (length arguments) 1))
+                (error "Cannot apply an invertible function with more than one argument")
+                (void))
+            (define result (un:apply (invfunc-wrap-func func) arguments))
+            (define result-inv (un:#%app (invfunc-wrap-invfunc func) result))
+            (if (not (equal? (first arguments) result-inv))
+                (error (format (string-append "Not a true invertible function for argument ~a. "
+                                              "Applying the inverse to the result yields ~a "
+                                              "instead.")
+                               (first arguments) result-inv))
+                (void))
+            result]
+           [(procedure? func)
+            (un:apply func arguments)]))]))
