@@ -1,4 +1,4 @@
-#lang s-exp "../lib/lang.rkt"
+#lang s-exp inverse
 
 (define add1 (λ-create-invertible (num)
                                   (+ num 1)
@@ -31,6 +31,8 @@
 (define c-to-f (lambda-auto-invert
                 (x)
                 ((addn 32) ((muln 9/5) x))))
+
+
 (define f-to-c (invert c-to-f))
 (define add1-bad (λ-create-invertible (num)
                                       (* num 2)
