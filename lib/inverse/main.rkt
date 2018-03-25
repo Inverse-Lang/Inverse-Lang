@@ -1,5 +1,12 @@
 #lang racket
 
+(module reader syntax/module-reader
+  inverse
+  #:read
+  read
+  #:read-syntax
+  read-syntax)
+
 (require (prefix-in un: racket))
 (require (for-syntax syntax/parse))
 
