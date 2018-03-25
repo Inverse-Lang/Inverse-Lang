@@ -2,7 +2,7 @@
 
 (require inverse/utils)
 
-(provide addn muln subn divn)
+(provide addn muln subn divn add1 sub1)
 
 ; Number -> [Number <-> Number]
 (define (addn n)
