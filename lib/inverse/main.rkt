@@ -10,19 +10,13 @@
 (require (prefix-in un: racket))
 (require (for-syntax syntax/parse))
 
-(provide #%module-begin
-         #%datum
-         #%top-interaction
-         define
-         lambda
-         λ
+(provide λ
          lambda-create-invertible
          lambda-auto-invert
          invert
-         require
-         provide
          declare-invertible
-         + - / *
+         (except-out (all-from-out racket)
+                     #%app)
          (rename-out
           [apply-func #%app]
           [lambda-create-invertible λ-create-invertible]
