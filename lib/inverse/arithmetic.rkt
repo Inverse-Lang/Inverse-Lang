@@ -1,6 +1,7 @@
-#lang s-exp inverse
+#lang inverse/base
 
-(require inverse/utils)
+(require inverse/utils
+         (only-in racket + - * /))
 
 (provide addn muln subn divn add1 sub1)
 

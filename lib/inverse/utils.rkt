@@ -1,4 +1,4 @@
-#lang s-exp inverse
+#lang inverse/base
 
 (provide invert-result)
 

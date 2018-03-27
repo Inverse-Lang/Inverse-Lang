@@ -1,5 +1,7 @@
-#lang inverse
+#lang inverse/base
 
+
+(require (only-in racket string-append substring string-length -))
 (provide prepend-str append-str)
 
 ; String -> [String <-> String]
