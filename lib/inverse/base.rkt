@@ -2,6 +2,7 @@
 
 (require (prefix-in un: racket))
 (require (for-syntax syntax/parse))
+(require racket/require)
 
 (module reader syntax/module-reader
   inverse/base
@@ -29,6 +30,8 @@
  lambda
  only-in
  except-out
+ quote
+ subtract-in
  (rename-out
           [apply-func #%app]
           [lambda-create-invertible λ-create-invertible]

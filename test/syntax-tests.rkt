@@ -1,11 +1,4 @@
-#lang s-exp inverse
-
-(require inverse/test-lib)
-(require inverse/arithmetic)
-
-(define (add1 x) (+ x 1))
-(define (sub1 x) (- x 1))
-(declare-invertible add1 sub1)
+#lang inverse
 
 (check-syntax-fail
  (declare-invertible 5 7))
