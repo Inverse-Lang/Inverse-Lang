@@ -12,3 +12,11 @@ The inverse language allows a user to construct and use the algebraic inverses o
 > ((invert add1) 5)
 4
 ]
+
+@section{Core Language Features}
+
+@section{Arithmetic}
+
+@section{Strings}
+
+@section{Utils}
