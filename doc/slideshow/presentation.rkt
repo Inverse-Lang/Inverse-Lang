@@ -10,10 +10,6 @@
   (namespace-require 'inverse/arithmetic)
   (namespace-require 'inverse/utils))
 
-(module test inverse
-  (require inverse/arithmetic)
-  (require inverse/utils))
-
 
 (slide
  (titlet "The Inverse Language")
@@ -31,7 +27,7 @@
  (item "A library of pre-defined invertible functions and utilities for working with such functions"))
       
 (slide
- #:title "How to say hello"
+ #:title "Demo"
  (repl-area #:width (* client-w 2/3)
             #:height (* client-h 1/2)
             #:font-size 18
