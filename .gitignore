@@ -5,3 +5,6 @@
 *.bak
 TAGS
 *\compiled
+*.css
+*.js
+*.html
