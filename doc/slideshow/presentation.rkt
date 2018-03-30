@@ -1,15 +1,21 @@
 #lang slideshow
 
 (require slideshow/repl)
+(require syntax/location)
 
-(define rep (make-repl-group))
 
-(define n (make-base-namespace))
-(parameterize ([current-namespace n])
+
+(module x inverse
+  (define (p x) (+ x 2))
+  (provide p))
+
+(define path (quote-module-path x))
+
+(define ns (make-base-empty-namespace))
+
+(parameterize ([current-namespace ns])
   (namespace-require 'inverse)
-  (namespace-require 'inverse/arithmetic)
-  (namespace-require 'inverse/utils))
-
+  (namespace-require path))
 
 (slide
  (titlet "The Inverse Language")
@@ -25,11 +31,13 @@
                       "compositions of other invertible functions"))
  'next
  (item "A library of pre-defined invertible functions and utilities for working with such functions"))
-      
+
+(start-at-recent-slide)
+
 (slide
  #:title "Demo"
  (repl-area #:width (* client-w 2/3)
             #:height (* client-h 1/2)
             #:font-size 18
-            #:make-namespace (thunk n)
+            #:make-namespace (thunk ns)
             "(add1 5)"))

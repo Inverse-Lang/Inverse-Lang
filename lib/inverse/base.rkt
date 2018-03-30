@@ -19,6 +19,7 @@
  #%module-begin
  #%datum
  #%top
+ #%top-interaction
  module
  require
  provide
