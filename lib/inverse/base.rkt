@@ -32,15 +32,27 @@
  only-in
  except-out
  quote
+ #%app
  subtract-in
  (rename-out
-          [apply-func #%app]
-          [lambda-create-invertible λ-create-invertible]
-          [invfunc-wrap? invertible?]
-          [lambda-auto-invert λ-auto-invert]))
+ ; [apply-func #%app]
+  [lambda-create-invertible λ-create-invertible]
+  [invfunc-wrap? invertible?]
+  [lambda-auto-invert λ-auto-invert]
+  [invfunc-wrap-func noinvert]))
 
 ; A Function is one of:
-(struct invfunc-wrap (func invfunc) #:transparent)
+(struct invfunc-wrap (func invfunc) #:transparent
+  #:property prop:procedure
+  (λ (func arg)
+    (define result ((invfunc-wrap-func func) arg))
+    (define result-inv ((invfunc-wrap-invfunc func) result))
+    (if (not (equal? arg result-inv))
+        (error (format (string-append "Not a true invertible function for argument ~a. "
+                                      "Applying the inverse to the result yields ~a "
+                                      "instead.")
+                       arg result-inv))
+        result)))
 
 ; Create an invertible lambda function
 (define-syntax lambda-create-invertible
@@ -98,7 +110,7 @@
     [(_ inner (invertiblefunc ifuncarg) correctarg)
      #:fail-unless (not (contains (local-expand #'invertiblefunc 'expression '()) #'correctarg))
      "Argument to auto-invertible function can only be used in the innermost function call"
-     #'(construct-inverse (apply-func (invert invertiblefunc) inner) ifuncarg correctarg)]
+     #'(construct-inverse ((invert invertiblefunc) inner) ifuncarg correctarg)]
     [(_ inner arg:id correctarg:id)
      #:fail-unless (free-identifier=? #'arg #'correctarg)
      (format
@@ -120,26 +132,3 @@
     [(invfunc-wrap? func) (invfunc-wrap (invfunc-wrap-invfunc func)
                                         (invfunc-wrap-func func))]
     [else (error "Not an invertible function")]))
-
-; Applies a function, taking it out of its wrapper struct
-(define-syntax apply-func
-  (syntax-parser
-    [(_ func args ...)
-     #'
-     (cond
-       [(invfunc-wrap? func)
-        (define arguments (list args ...))
-        (if (not (= (length arguments) 1))
-            (error "Cannot apply an invertible function with more than one argument")
-            (void))
-        (define result (un:apply (invfunc-wrap-func func) arguments))
-        (define result-inv (un:#%app (invfunc-wrap-invfunc func) result))
-        (if (not (equal? (first arguments) result-inv))
-            (error (format (string-append "Not a true invertible function for argument ~a. "
-                                          "Applying the inverse to the result yields ~a "
-                                          "instead.")
-                           (first arguments) result-inv))
-            (void))
-        result]
-       [(procedure? func)
-        (#%app func args ...)])]))
