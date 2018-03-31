@@ -7,8 +7,8 @@
 (define start-future-plans #f)
 
 (module x inverse
-  (define p (addn 2))
-  (provide p))
+  ;(define p (addn 2))
+  #;(provide p))
 
 (define path (quote-module-path x))
 
