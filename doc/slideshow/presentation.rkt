@@ -2,11 +2,12 @@
 
 (require slideshow/repl)
 (require syntax/location)
+(require slideshow/code)
 
-
+(define start-future-plans #f)
 
 (module x inverse
-  (define (p x) (+ x 2))
+  (define p (addn 2))
   (provide p))
 
 (define path (quote-module-path x))
@@ -32,12 +33,45 @@
  'next
  (item "A library of pre-defined invertible functions and utilities for working with such functions"))
 
-(start-at-recent-slide)
 
 (slide
- #:title "Demo"
- (repl-area #:width (* client-w 2/3)
-            #:height (* client-h 1/2)
-            #:font-size 18
-            #:make-namespace (thunk ns)
-            "(add1 5)"))
+ #:title "Manually invertible functions"
+ (code (define add1
+         (λ-create-invertible (x)
+                              (+ x 1)
+                              (- x 1))))
+ (repl-area
+  #:width (* client-w 2/3)
+  #:height (* client-h 1/2)
+  #:font-size 24
+  #:make-namespace (thunk ns)
+  "(add1 5)"))
+
+(slide
+ #:title "Automatically invertible functions"
+ (repl-area
+  #:width (* client-w 2/3)
+  #:height (* client-h 1/2)
+  #:font-size 24
+  #:make-namespace (thunk ns)
+  "(define add2 (λ-auto-invert (x)
+                  (add1 (add1 x))))"))
+
+
+(slide
+ (titlet "Future plans"))
+
+(if start-future-plans
+    (start-at-recent-slide)
+    (void))
+
+(slide
+ #:title "Future Plans"
+ (item "Item 1")
+ 'next
+ (item "Item 2")
+ 'next
+ (item "Item 3"))
+
+ 
+
