@@ -3,6 +3,7 @@
 (require rackunit)
 (require (for-syntax rackunit))
 (require (for-syntax syntax/parse))
+(require (prefix-in inv: inverse/base))
 
 (provide
  (rename-out [check-equal? check-expect])

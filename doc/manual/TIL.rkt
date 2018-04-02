@@ -164,3 +164,33 @@ to make sure that functions are really inverses of each other at runtime.
  (sub5 7)]
 }
 
+@section{Testing library}
+
+This testing library relies on rackunit as its backend.
+
+@defproc[(check-expect [actual any/c] [expected any/c]) void?]{
+ Tests if two values are equal
+ @racketblock[
+ (check-expect 1 1) Passes
+ (check-expect 1 2) Fails
+ ]
+}
+
+@defform[(check-syntax-fail s-exp)]{
+ The test passes if the s-exp contains a syntax error.
+ Note that this test form does not work in the interactions window.
+
+ @racketblock[
+ (check-syntax-fail (λ () x)) Passes
+ (check-syntax-fail (λ (x) x)) Fails]
+}
+
+@defform[(check-fail s-exp)]{
+ The test passes if the body produces any runtime error.
+
+ @racketblock[
+ (check-fail (error "Hello")) Passes
+ (check-fail "Hello") Fails]
+}
+
+
