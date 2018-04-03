@@ -18,18 +18,18 @@
 
 (check-syntax-fail
  (lambda-auto-invertible (x)
-                     (+ 1 x)))
+                         (+ 1 x)))
 (check-syntax-fail
  (lambda-auto-invertible (x)
-                     (+ 1 y)))
+                         (+ 1 y)))
 
 (check-syntax-fail
  (lambda-auto-invertible (x)
-                     (+ (addn x) x)))
+                         (+ (addn x) x)))
 (check-expect ((subn 5) 7) 2)
 
 (define c->f (lambda-auto-invertible (x)
-                                 ((addn 32) ((muln 9/5) x))))
+                                     ((addn 32) ((muln 9/5) x))))
 (define f->c (invert c->f))
 
 (define f->c-adapter (create-adapter f->c))
@@ -37,7 +37,7 @@
 (define-auto-invertible (raise-100-degrees celsius)
   ((addn 100)
    ((check-condition (λ (x) (> x -273.15))
-                  "Cannot go below absolute zero!")
+                     "Cannot go below absolute zero!")
     celsius)))
 
 (define raise-180-farenheit (f->c-adapter raise-100-degrees))
@@ -48,6 +48,19 @@
 
 (define c->f-adapter (invert f->c-adapter))
 (define lower-100-celsius (c->f-adapter (invert raise-180-farenheit)))
+
+(λ (func2)
+  (λ (func1)
+    (λ (x)
+      (define result-of-inv (((invert func2) (func2 func1)) x)
+        (define result (func1 x)))
+      (if (not (equal? result result-of-inv))
+          (raise-arguments-error
+           'deferred-invertible-check
+           "Deferred function not true invertible: "
+           "non-inverted result" result
+           "inverted result" result-of-inv)
+          (void)))))
 
 (check-expect (((invert c->f-adapter) (c->f-adapter raise-180-farenheit)) 500)
               (raise-180-farenheit 500))

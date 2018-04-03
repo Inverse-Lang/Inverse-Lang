@@ -44,12 +44,13 @@
   [invfunc-wrap-func noinvert]))
 
 ; A Function is one of:
-(struct invfunc-wrap (func invfunc verify-inverse) #:transparent
+(struct invfunc-wrap (func invfunc verify-inverse defer check-also) #:transparent
   #:property prop:procedure
   (λ (func arg)
     (define result ((invfunc-wrap-func func) arg))
     (define result-inv ((invfunc-wrap-invfunc func) result))
     (if (and (invfunc-wrap-verify-inverse func)
+             (not (invfunc-wrap-defer func))
              (not (eqv? arg result-inv)))
         (raise-arguments-error
          'invertible-check
@@ -57,20 +58,51 @@
          "given argument" arg "result" result "inverse applied to result" result-inv)
         result)))
 
+(define inverse-context (make-parameter '()))
+
+(define test-deferred-inverrtible
+  (λ (func2 invfunc2)
+    (λ (func1)
+      (λ (x)
+        (define result-of-inv ((invfunc2 (func2 func1)) x))
+        (define result (func1 x))
+        (if (not (equal? result result-of-inv))
+            (raise-arguments-error
+             'deferred-invertible-check
+             "Deferred function not true invertible: "
+             "non-inverted result" result
+             "inverted result" result-of-inv)
+            (void))))))
+
 ; Create an invertible lambda function
 (define-syntax (lambda-create-invertible stx)
   (syntax-parse stx
     [(_ (arg) body invbody)
      #`(invfunc-wrap #,(syntax/loc stx (un:lambda (arg) body))
                      #,(syntax/loc stx (un:lambda (arg) invbody))
-                     #t)]))
+                     #t #f '())]))
+
+(define-syntax (lambda-create-invertible/d stx)
+  (syntax-parse stx
+    [(_ (arg) body invbody)
+     #`(begin
+         (define func #,(syntax/loc stx (un:lambda (arg) body)))
+         (define invfunc #,(syntax/loc stx (un:lambda (arg) invbody)))
+         (define deferred-func-test (test-deferred-invertible func invfunc))
+         (define deferred-invfunc-test (test-deferred-invertible invfunc func))
+         (invfunc-wrap #,(syntax/loc stx
+                           (un:lambda (arg) (parameterize [(inverse-context
+                                                            (deferred-func-test arg))] body))
+                           (un:lambda (arg) (parameterize [(inverse-context
+                                                            (deferred-invfunc-test arg))] invbody))
+                           #f #t '())])))))]))
 
 (define-syntax (lambda-create-invertible! stx)
   (syntax-parse stx
     [(_ (arg) body invbody)
      #`(invfunc-wrap #,(syntax/loc stx (un:lambda (arg) body))
                      #,(syntax/loc stx (un:lambda (arg) invbody))
-                     #f)]))
+                     #f #f '())]))
 
 ; Create a function composed of other invertible functions
 ; Automatically construct the inverse
