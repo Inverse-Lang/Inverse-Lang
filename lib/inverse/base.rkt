@@ -49,7 +49,9 @@
     ret))
 
 (define/contract (apply-check-invfunc invfunc arg)
-  (-> invfunc-wrap? (invertible-arg? invfunc) any/c)
+  (->i ([invfunc invfunc-wrap?]
+        [arg (invfunc) (invertible-arg? invfunc)])
+       any)
   ((invfunc-wrap-func invfunc) arg))
 
 ; A Function is one of:

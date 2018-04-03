@@ -32,5 +32,7 @@
                                  ((addn 32) ((muln 9/5) x))))
 (define f->c (invert c->f))
 
+(add1-evil 6)
+
 (check-expect (c->f 100) 212)
 (check-expect (f->c 68) 20)
