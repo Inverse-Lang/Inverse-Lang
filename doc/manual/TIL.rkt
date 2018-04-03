@@ -35,8 +35,8 @@ The inverse language allows a user to construct and use the algebraic inverses o
  Creates an invertible function with a specified body and inverse.
 }
 
-@deftogether[(@defform[(lambda-auto-invert (argument) body)]
-               @defform[(λ-auto-invert (argument) body)])]{
+@deftogether[(@defform[(lambda-auto-invertible (argument) body)]
+               @defform[(λ-auto-invertible (argument) body)])]{
  Automatically creates the inverse of a function provided that
  the body of the function meets specific constraints.
 
@@ -52,14 +52,14 @@ The inverse language allows a user to construct and use the algebraic inverses o
 
  For example, this is allowed:
  @racketblock[
- (λ-auto-invert (x) ((invert (addn 7)) x))
- (λ-auto-invert (x) ((dummy-func (λ (x) x)) x))
+ (λ-auto-invertible (x) ((invert (addn 7)) x))
+ (λ-auto-invertible (x) ((dummy-func (λ (x) x)) x))
  ]
 
  But this is not allowed:
  @racketblock[
- (λ-auto-invert (x) ((invert (addn x)) 7))
- (λ-auto-invert (x) ((dummy-func (λ (y) x)) x))
+ (λ-auto-invertible (x) ((invert (addn x)) 7))
+ (λ-auto-invertible (x) ((dummy-func (λ (y) x)) x))
  ]
 }
 

@@ -1,7 +1,8 @@
 #lang racket
 
 (require (prefix-in un: racket))
-(require (for-syntax syntax/parse))
+(require (for-syntax syntax/parse)
+         (for-syntax syntax/quote))
 (require racket/require)
 
 (module reader syntax/module-reader
@@ -13,7 +14,8 @@
 
 (provide
  lambda-create-invertible
- lambda-auto-invert
+ lambda-create-invertible!
+ lambda-auto-invertible
  invert
  declare-invertible
  #%module-begin
@@ -36,17 +38,19 @@
  subtract-in
  (rename-out
   [lambda-create-invertible λ-create-invertible]
+  [lambda-create-invertible! λ-create-invertible!]
   [invfunc-wrap? invertible?]
-  [lambda-auto-invert λ-auto-invert]
+  [lambda-auto-invertible λ-auto-invertible]
   [invfunc-wrap-func noinvert]))
 
 ; A Function is one of:
-(struct invfunc-wrap (func invfunc) #:transparent
+(struct invfunc-wrap (func invfunc verify-inverse) #:transparent
   #:property prop:procedure
   (λ (func arg)
     (define result ((invfunc-wrap-func func) arg))
     (define result-inv ((invfunc-wrap-invfunc func) result))
-    (if (not (equal? arg result-inv))
+    (if (and (invfunc-wrap-verify-inverse func)
+             (not (eqv? arg result-inv)))
         (raise-arguments-error
          'invertible-check
          "Not a true invertible function: given argument and inverse applied to result must match."
@@ -54,21 +58,30 @@
         result)))
 
 ; Create an invertible lambda function
-(define-syntax lambda-create-invertible
-  (syntax-parser
+(define-syntax (lambda-create-invertible stx)
+  (syntax-parse stx
     [(_ (arg) body invbody)
-     #'(invfunc-wrap (un:lambda (arg) body)
-                     (un:lambda (arg) invbody))]))
+     #`(invfunc-wrap #,(syntax/loc stx (un:lambda (arg) body))
+                     #,(syntax/loc stx (un:lambda (arg) invbody))
+                     #t)]))
+
+(define-syntax (lambda-create-invertible! stx)
+  (syntax-parse stx
+    [(_ (arg) body invbody)
+     #`(invfunc-wrap #,(syntax/loc stx (un:lambda (arg) body))
+                     #,(syntax/loc stx (un:lambda (arg) invbody))
+                     #f)]))
 
 ; Create a function composed of other invertible functions
 ; Automatically construct the inverse
-(define-syntax lambda-auto-invert
-  (syntax-parser
+(define-syntax (lambda-auto-invertible stx)
+  (syntax-parse stx
     [(_ (arg) body)
-     #`(lambda-create-invertible
+     (syntax/loc stx
+       (lambda-create-invertible
         (arg)
         body
-        (construct-inverse arg body arg))]))
+        (construct-inverse arg body arg)))]))
 
 (define-for-syntax get-innermost
   (syntax-parser
@@ -129,5 +142,6 @@
 (define (invert func)
   (cond
     [(invfunc-wrap? func) (invfunc-wrap (invfunc-wrap-invfunc func)
-                                        (invfunc-wrap-func func))]
+                                        (invfunc-wrap-func func)
+                                        (invfunc-wrap-verify-inverse func))]
     [else (error "Not an invertible function")]))
