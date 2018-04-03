@@ -41,10 +41,21 @@
   [lambda-auto-invert λ-auto-invert]
   [invfunc-wrap-func noinvert]))
 
+(define (invertible-arg? invfunc)
+  (λ (arg)
+    (define res ((invfunc-wrap-func invfunc) arg))
+    (define ret (equal? ((invfunc-wrap-invfunc invfunc) res) arg))
+    (displayln ret)
+    ret))
+
+(define/contract (apply-check-invfunc invfunc arg)
+  (-> invfunc-wrap? (invertible-arg? invfunc) any/c)
+  ((invfunc-wrap-func invfunc) arg))
+
 ; A Function is one of:
 (struct invfunc-wrap (func invfunc) #:transparent
-  #:property prop:procedure
-  (λ (func arg)
+  #:property prop:procedure apply-check-invfunc
+  #;(λ (func arg)
     (define result ((invfunc-wrap-func func) arg))
     (define result-inv ((invfunc-wrap-invfunc func) result))
     (if (not (equal? arg result-inv))
