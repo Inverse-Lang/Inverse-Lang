@@ -49,6 +49,9 @@
 (define c->f-adapter (invert f->c-adapter))
 (define lower-100-celsius (c->f-adapter (invert raise-180-farenheit)))
 
+(check-expect (((invert c->f-adapter) (c->f-adapter raise-180-farenheit)) 500)
+              (raise-180-farenheit 500))
+
 (check-expect (lower-100-celsius -173) -273)
 (check-fail (lower-100-celsius -300))
 ;(add1-evil 5)
