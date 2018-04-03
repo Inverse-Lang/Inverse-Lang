@@ -20,6 +20,7 @@
  #%datum
  #%top
  #%top-interaction
+ #%app
  module
  require
  provide
@@ -32,10 +33,8 @@
  only-in
  except-out
  quote
- #%app
  subtract-in
  (rename-out
- ; [apply-func #%app]
   [lambda-create-invertible λ-create-invertible]
   [invfunc-wrap? invertible?]
   [lambda-auto-invert λ-auto-invert]
@@ -48,10 +47,10 @@
     (define result ((invfunc-wrap-func func) arg))
     (define result-inv ((invfunc-wrap-invfunc func) result))
     (if (not (equal? arg result-inv))
-        (error (format (string-append "Not a true invertible function for argument ~a. "
-                                      "Applying the inverse to the result yields ~a "
-                                      "instead.")
-                       arg result-inv))
+        (raise-arguments-error
+         'invertible-check
+         "Not a true invertible function: given argument and inverse applied to result must match."
+         "given argument" arg "result" result "inverse applied to result" result-inv)
         result)))
 
 ; Create an invertible lambda function
