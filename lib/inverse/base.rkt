@@ -16,6 +16,7 @@
  lambda-create-invertible
  lambda-create-invertible!
  lambda-auto-invertible
+ lambda-create-invertible/defer
  invert
  declare-invertible
  #%module-begin
@@ -39,15 +40,69 @@
  (rename-out
   [lambda-create-invertible λ-create-invertible]
   [lambda-create-invertible! λ-create-invertible!]
+  [lambda-create-invertible/defer λ-create-invertible/defer]
   [invfunc-wrap? invertible?]
   [lambda-auto-invertible λ-auto-invertible]
   [invfunc-wrap-func noinvert]))
 
-; A Function is one of:
-(struct invfunc-wrap (func invfunc verify-inverse) #:transparent
+; A Test is a (list InvFunction InvFunction)
+; For the test to pass, both procedures must produce the same result when
+; applied to a given argument
+
+; A InvFunction a:
+;(invfunc-wrap procedure procedure boolean [List-of Test])
+
+(define (test-cascade tests arg)
+  #; (if (not (empty? tests))
+         (and (displayln tests)
+              (displayln arg))
+         (void))
+  (andmap
+   (λ (test)
+     (with-handlers ([exn:fail? (λ (exn) (displayln (exn-message exn)) #f)])
+       (define res1 ((first test) arg))
+       ;(displayln res1)
+       (define res2 ((second test) arg))
+       ; (displayln res2)
+       (if (equal? res1 res2)
+           #t
+           (begin ((displayln (format "Deferred invertible check FAILED. Actual: ~a. Expected: ~a."
+                                      res1
+                                      res2)))
+                  #f))))
+   tests))
+
+(define (cascade-apply tests arg)
+  (map (λ (test) (list ((first test) arg)
+                       ((second test) arg)))
+       tests))
+
+(define (invert-cascade tests)
+  ;(if (not (empty? tests)) (displayln tests) (void))
+  (map (λ (test)
+         (list (invert (first test))
+               (invert (second test))))
+       tests))
+
+(define current-cascade (make-parameter '()))
+
+(struct invfunc-wrap (func invfunc verify-inverse cascaded-tests) #:transparent
   #:property prop:procedure
   (λ (func arg)
-    (define result ((invfunc-wrap-func func) arg))
+    (if (and (invfunc-wrap-verify-inverse func)
+             (not (test-cascade (invfunc-wrap-cascaded-tests func) arg)))
+        (raise-arguments-error
+         'cascade-check
+         (string-append "A deferred invertible test has failed. " 
+                        "If this function was produced as the result of an invertible function, "
+                        "the function that produced this was not itself invertible")
+         "given argument" arg)
+        (void))
+    (define next-cascade (if (invfunc-wrap-verify-inverse func) '()
+                             (cascade-apply (invfunc-wrap-cascaded-tests func) arg)))
+    (define result
+      (parameterize [(current-cascade next-cascade)]
+        ((invfunc-wrap-func func) arg)))
     (define result-inv ((invfunc-wrap-invfunc func) result))
     (if (and (invfunc-wrap-verify-inverse func)
              (not (eqv? arg result-inv)))
@@ -63,14 +118,38 @@
     [(_ (arg) body invbody)
      #`(invfunc-wrap #,(syntax/loc stx (un:lambda (arg) body))
                      #,(syntax/loc stx (un:lambda (arg) invbody))
-                     #t)]))
+                     #t
+                     (current-cascade))]))
+
+(define-syntax (lambda-create-invertible/defer stx)
+  (syntax-parse stx
+    [(_ (arg) body invbody)
+     #`(begin (define prev-cascade (current-cascade))
+              (define cascader-function (invfunc-wrap
+                                         #,(syntax/loc stx (un:lambda (arg) body))
+                                         #,(syntax/loc stx (un:lambda (arg) invbody))
+                                         #f
+                                         '()))
+              (define new-test1
+                (parameterize [(current-cascade '())]
+                  (lambda-auto-invertible! (ar) ((invert cascader-function) (cascader-function ar)))))
+              (define new-test2
+                (parameterize [(current-cascade '())]
+                  (lambda-auto-invertible! (ar) ar)))
+              (define new-cascade (cons (list new-test1 new-test2) prev-cascade))
+              (invfunc-wrap
+               #,(syntax/loc stx (un:lambda (arg) body))
+               #,(syntax/loc stx (un:lambda (arg) invbody))
+               #f
+               new-cascade))]))
 
 (define-syntax (lambda-create-invertible! stx)
   (syntax-parse stx
     [(_ (arg) body invbody)
      #`(invfunc-wrap #,(syntax/loc stx (un:lambda (arg) body))
                      #,(syntax/loc stx (un:lambda (arg) invbody))
-                     #f)]))
+                     #f
+                     '())]))
 
 ; Create a function composed of other invertible functions
 ; Automatically construct the inverse
@@ -79,6 +158,17 @@
     [(_ (arg) body)
      (syntax/loc stx
        (lambda-create-invertible
+        (arg)
+        body
+        (construct-inverse arg body arg)))]))
+
+; Create a function composed of other invertible functions
+; Automatically construct the inverse
+(define-syntax (lambda-auto-invertible! stx)
+  (syntax-parse stx
+    [(_ (arg) body)
+     (syntax/loc stx
+       (lambda-create-invertible!
         (arg)
         body
         (construct-inverse arg body arg)))]))
@@ -143,5 +233,6 @@
   (cond
     [(invfunc-wrap? func) (invfunc-wrap (invfunc-wrap-invfunc func)
                                         (invfunc-wrap-func func)
-                                        (invfunc-wrap-verify-inverse func))]
+                                        (invfunc-wrap-verify-inverse func)
+                                        (invert-cascade (invfunc-wrap-cascaded-tests func)))]
     [else (error "Not an invertible function")]))
