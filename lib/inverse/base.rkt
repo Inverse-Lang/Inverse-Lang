@@ -60,9 +60,9 @@
   (andmap
    (λ (test)
      (with-handlers ([exn:fail? (λ (exn) (displayln (exn-message exn)) #f)])
-       (define res1 ((first test) arg))
+       (define res1 ((invfunc-wrap-func (first test)) arg))
        ;(displayln res1)
-       (define res2 ((second test) arg))
+       (define res2 ((invfunc-wrap-func (second test)) arg))
        ; (displayln res2)
        (if (equal? res1 res2)
            #t
@@ -76,6 +76,7 @@
   (map (λ (test) (list ((first test) arg)
                        ((second test) arg)))
        tests))
+
 
 (define (invert-cascade tests)
   ;(if (not (empty? tests)) (displayln tests) (void))

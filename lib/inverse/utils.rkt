@@ -41,7 +41,7 @@
                               ((invert adapter-func) (adapted (adapter-func arg))))
                              (λ-auto-invertible
                               (arg)
-                              (adapter-func (adapted ((invert adapter-func) arg))))))
+                               (adapter-func (adapted ((invert adapter-func) arg))))))
 
 (define-syntax (define-create-invertible stx)
   (syntax-parse stx
@@ -75,4 +75,6 @@
           'check-bounds
           msg
           "given" arg)))))
+
+
 
