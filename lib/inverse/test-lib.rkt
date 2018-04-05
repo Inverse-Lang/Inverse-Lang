@@ -20,7 +20,7 @@
 
 (check-syntax-fail (λ () x))
 
-(define-syntax check-fail
-  (syntax-parser
+(define-syntax (check-fail stx)
+  (syntax-parse stx
     [(_ syn)
-     #'(check-exn exn:fail? (λ () syn))]))
+     (syntax/loc stx (check-exn exn:fail? (λ () syn)))]))

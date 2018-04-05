@@ -35,13 +35,13 @@
          modes)]))))
 
 (define (create-adapter adapter-func)
-  (λ-create-invertible! (adapted)
-                       (λ-auto-invertible
-                        (arg)
-                        ((invert adapter-func) (adapted (adapter-func arg))))
-                       (λ-auto-invertible
-                        (arg)
-                        (adapter-func (adapted ((invert adapter-func) arg))))))
+  (λ-create-invertible/defer (adapted)
+                             (λ-auto-invertible
+                              (arg)
+                              ((invert adapter-func) (adapted (adapter-func arg))))
+                             (λ-auto-invertible
+                              (arg)
+                               (adapter-func (adapted ((invert adapter-func) arg))))))
 
 (define-syntax (define-create-invertible stx)
   (syntax-parse stx
@@ -75,4 +75,6 @@
           'check-bounds
           msg
           "given" arg)))))
+
+
 
