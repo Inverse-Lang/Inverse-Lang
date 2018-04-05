@@ -88,6 +88,32 @@ to make sure that functions are really inverses of each other at runtime.
  ERROR: Not a true invertible function for argument 1
  Applying the inverse to the result yields 0 instead
  ]
+
+@subsection{The Cascade}
+
+Typically, inverse checking for a function, foo, is accomplished by
+making sure that
+
+@racketblock[(equal? ((invert foo) (foo arg)) arg)]
+
+
+for any argument that foo is called with. But what about higher-order
+functions?
+
+@racket[equal?] isn't able to compare two functions to check
+equality. Instead, we wait until an argument, arg2,  is provided to the resulting
+function. We then test
+
+@racketblock[(equal? (((invert foo) (foo arg)) arg2) (arg arg2))]
+
+This also works when we invert the function, testing:
+
+@racketblock[(equal? ((invert ((invert foo) (foo arg))) arg2) ((invert arg) arg2))]
+
+When a @racket[/defer] lambda form is used, TIL will delay inverse testing when
+the function is ran. If multiple @racket[/defer] lambdas are nested, this effect
+will cascade inward until a non deferred lambda is encountered,
+applying each argument to each test.
              
 
 @section{Arithmetic}
