@@ -110,7 +110,11 @@
              (not (eqv? arg result-inv)))
         (raise-arguments-error
          'invertible-check
-         "Not a true invertible function: given argument and inverse applied to result must match."
+         (string-append 
+          "Not a true invertible function: given argument and inverse applied to result must match."
+          (if (procedure? arg)
+              " Note that the /defer lambda forms can properly handle higher-order inverse functions."
+              ""))
          "given argument" arg "result" result "inverse applied to result" result-inv)
         result))
   #:methods gen:equal+hash
@@ -169,11 +173,7 @@
   (syntax-parse stx
     [(_ (arg) body invbody)
      #`(begin (define prev-cascade (current-cascade))
-              (define cascader-function (invfunc-wrap
-                                         #,(syntax/loc stx (un:lambda (arg) body))
-                                         #,(syntax/loc stx (un:lambda (arg) invbody))
-                                         #f
-                                         '()))
+              (define cascader-function (lambda-create-invertible! (arg) body invbody))
               (define new-test1
                 (parameterize [(current-cascade '())]
                   (lambda-auto-invertible! (ar) ((invert cascader-function) (cascader-function ar)))))

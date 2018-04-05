@@ -1,5 +1,8 @@
 #lang scribble/manual
 
+
+@defmodule[inverse #:lang]
+
 @title{The Inverse Language}
 
 @section{Introduction}
@@ -32,7 +35,23 @@ The inverse language allows a user to construct and use the algebraic inverses o
 
 @deftogether[(@defform[(lambda-create-invertible (argument) body invbody)]
                @defform[(λ-create-invertible (argument) body invbody)])]{
- Creates an invertible function with a specified body and inverse.
+ Creates an invertible function with a specified body and inverse. The function
+ must take in and return a value, not a procedure. The deferred versions of these
+ forms handle procedures properly.
+}
+
+@deftogether[(@defform[(lambda-create-invertible! (argument) body invbody)]
+               @defform[(λ-create-invertible! (argument) body invbody)])]{
+ Disables the invertibility checker for a specified invertible function.
+ Also discards any inherited deferred tests. Note that this will not disable
+ the invertibility checker for other functions that use this function.
+}
+
+
+@deftogether[(@defform[(lambda-create-invertible/defer (argument) body invbody)]
+               @defform[(λ-create-invertible/defer (argument) body invbody)])]{
+ Allows the user to create higher-order invertible functions, and defers invertibility checks.
+ For more details, see @secref{cascade}.
 }
 
 @deftogether[(@defform[(lambda-auto-invertible (argument) body)]
@@ -63,6 +82,17 @@ The inverse language allows a user to construct and use the algebraic inverses o
  ]
 }
 
+@deftogether[(@defform[(lambda-auto-invertible! (argument) body)]
+               @defform[(λ-auto-invertible! (argument) body)])]{
+ Same as lambda-auto-invertible, but disables invertibility checker.
+}
+
+@deftogether[(@defform[(lambda-auto-invertible/defer (argument) body invbody)]
+               @defform[(λ-auto-invertible/defer (argument) body invbody)])]{
+ Same as lambda-auto-invertible, but defers invertibility checks.
+ For more details, see @secref{cascade}.
+}
+
 @deftogether[(@defform[(declare-invertible id id)]
                @defform[(declare-invertible id procedure?)]
                @defform[(declare-invertible procedure? id)])]{
@@ -70,6 +100,26 @@ The inverse language allows a user to construct and use the algebraic inverses o
                                                               
  Sets two functions to be the inverses of each other.
  All ids used must be settable from the current context.
+}
+
+@deftogether[(@defform[(lambda (argument) body invbody)]
+               @defform[(λ (argument) body invbody)])]{
+ Same as lambda from racket, but runs any deferred invertibility checks
+ if it is created by an invertible function.
+
+ Use lambda/defer if this lambda will return a procedure
+ and this lambda is created within an invertible function.
+}
+
+@deftogether[(@defform[(lambda! (argument) body invbody)]
+               @defform[(λ! (argument) body invbody)])]{
+ Same as lambda, but ignores any deferred invertibility checks.
+}
+
+@deftogether[(@defform[(lambda/defer (argument) body invbody)]
+               @defform[(λ/defer (argument) body invbody)])]{
+ Same as lambda, but defers invertibility checks for parent invertible functions.
+ For more details, see @secref{cascade}.
 }
 
 @subsection{Inverse Checking}
@@ -89,7 +139,7 @@ to make sure that functions are really inverses of each other at runtime.
  Applying the inverse to the result yields 0 instead
  ]
 
-@subsection{The Cascade}
+@subsection[#:tag "cascade"]{The Cascade}
 
 Typically, inverse checking for a function, foo, is accomplished by
 making sure that
@@ -189,6 +239,59 @@ applying each argument to each test.
  (add5 7)
  (sub5 7)]
 }
+
+@defform[(define-create-invertible (name arg) body invbody)]{
+ Same as:
+
+ @racketblock[
+ (define name (lambda-create-invertible (arg) body invbody))
+ ]
+}
+
+@defform[(define-auto-invertible (name arg) body)]{
+ Same as:
+
+ @racketblock[
+ (define name (lambda-auto-invertible (arg) body))
+ ]
+}
+
+@defproc[(create-invertible [func procedure?] [invfunc procedure?]) invertible?]{
+ Given two functions that are inverses of each other,
+ creates an invertible function representing both functions.
+}
+
+@defproc[(self-invert [func procedure?]) invertible?]{
+ If a function is an inverse of itself, create an @racket[invertible?]
+ to represent it.
+
+ @racketblock[
+ (define invertible-identity (self-invert identity))
+ ]
+}
+
+@defproc[(create-adapter [adapter-func invertible?]) [invertible? <-> invertible?]]{
+ Creates a function that can act as an adapter.
+
+ Example:
+
+ @racketblock[
+ (define celsius->farenheit (lambda-auto-invertible (x) ((addn 32) ((muln 9/5) x))))
+ (define c->f-adapter (create-adapter celsius->farenheit))
+ (define f->c-adapter (invert f->c-adapter))
+
+ (define some-farenheit-operation (λ-auto-invertible (x) ((addn 180) x)))
+ (define the-same-op-in-celsius (f->c-adapter some-farenheit-operation))
+
+ > (some-farenheit-operation 32)
+ 212
+ > (the-same-op-in-celsius 0)
+ 100
+ > ((invert the-same-op-in-celsius) 100)
+ 0
+ ]
+}
+
 
 @section{Testing library}
 

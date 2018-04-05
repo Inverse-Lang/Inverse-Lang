@@ -38,10 +38,10 @@
   (λ-create-invertible/defer (adapted)
                              (λ-auto-invertible
                               (arg)
-                              ((invert adapter-func) (adapted (adapter-func arg))))
+                              (adapter-func (adapted ((invert adapter-func) arg))))
                              (λ-auto-invertible
                               (arg)
-                               (adapter-func (adapted ((invert adapter-func) arg))))))
+                              ((invert adapter-func) (adapted (adapter-func arg))))))
 
 (define-syntax (define-create-invertible stx)
   (syntax-parse stx

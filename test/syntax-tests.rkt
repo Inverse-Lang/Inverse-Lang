@@ -33,16 +33,19 @@
 (define f->c (invert c->f))
 
 (define f->c-adapter (create-adapter f->c))
+(define c->f-adapter (invert f->c-adapter))
 
 (define-auto-invertible (raise-100-degrees celsius)
   ((addn 100) celsius))
 
-(define raise-180-farenheit (f->c-adapter raise-100-degrees))
+(define raise-180-farenheit (c->f-adapter raise-100-degrees))
 (check-expect (raise-180-farenheit 100) 280)
 (check-expect ((invert raise-180-farenheit) 380) 200)
 (check-expect (raise-180-farenheit -459) -279)
-(define c->f-adapter (invert f->c-adapter))
-(define lower-100-celsius (c->f-adapter (invert raise-180-farenheit)))
+(define lower-100-celsius (f->c-adapter (invert raise-180-farenheit)))
+
+(define (cfunc->ffunc func)
+  (λ (fval) (c->f (func (f->c fval)))))
 
 (check-expect (((invert c->f-adapter) (c->f-adapter raise-180-farenheit)) 500)
               (raise-180-farenheit 500))
