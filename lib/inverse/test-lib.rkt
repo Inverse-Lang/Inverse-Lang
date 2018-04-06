@@ -10,6 +10,7 @@
  check-syntax-fail
  check-fail)
 
+; Does a given expression throw a syntax error?
 (define-syntax check-syntax-fail
   (syntax-parser
     [(_ syn)
@@ -20,6 +21,7 @@
 
 (check-syntax-fail (λ () x))
 
+; Is an exception produced by the given expression?
 (define-syntax (check-fail stx)
   (syntax-parse stx
     [(_ syn)
