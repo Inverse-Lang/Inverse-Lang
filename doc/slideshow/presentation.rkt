@@ -5,6 +5,7 @@
 (require slideshow/code)
 
 (define start-future-plans #f)
+(enable-click-advance! #f)
 
 (module x inverse
   ;(define p (addn 2))
@@ -54,9 +55,12 @@
   #:height (* client-h 1/2)
   #:font-size 24
   #:make-namespace (thunk ns)
-  "(define add2 (λ-auto-invert (x)
-                  (add1 (add1 x))))"))
+  "(define add2
+     (λ-auto-invertible (x)
+       (add1 (add1 x))))"))
 
+(slide
+ (titlet "Demo"))
 
 (slide
  (titlet "Future plans"))
@@ -67,9 +71,9 @@
 
 (slide
  #:title "Future Plans"
- (item "Item 1")
+ (item "/defer forms")
  'next
- (item "Item 2")
+ (item "Provide invertible forms of more racket functions")
  'next
  (item "Item 3"))
 
