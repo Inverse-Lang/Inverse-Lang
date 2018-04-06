@@ -41,7 +41,7 @@
 ; create an adapter function that can turn a function that operates
 ; on one type of data into a function that operates on the other type of data.
 (define (create-adapter adapter-func)
-  (λ-create-invertible/defer (adapted)
+  (λ-create-invertible! (adapted)
                              (λ-auto-invertible
                               (arg)
                               (adapter-func (adapted ((invert adapter-func) arg))))

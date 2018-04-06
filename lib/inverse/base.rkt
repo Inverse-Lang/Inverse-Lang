@@ -49,13 +49,15 @@
   [lambda/nondefer λ]
   [lambda/nondefer lambda]))
 
-; A Test is a (list InvFunction InvFunction)
+; A Test is a (list Function Function)
 ; For the test to pass, both procedures must produce the same result when
 ; applied to a given argument
 
 ; A InvFunction a:
-;(invfunc-wrap procedure procedure boolean [List-of Test])
+;(invfunc-wrap procedure procedure boolean [List-of Test] boolean)
 
+; (Listof Test) (Listof Any) -> Boolean
+; Runs all deferred tests using the given argument(s)
 (define (test-cascade tests args)
   (andmap
    (λ (test)
@@ -70,6 +72,8 @@
                   #f))))
    tests))
 
+; [X] X -> X
+; If a function wrapper is provided, remove the tests from that wrapper
 (define (remove-tests func)
   (cond
     [(invfunc-wrap? func) (invfunc-wrap (invfunc-wrap-func func)
@@ -81,13 +85,16 @@
                                   #f '())]
     [else func]))
 
+; (Listof Test) (Listof Any) -> (Listof Test)
+; Applies the given arguments to each of the tests.
 (define (cascade-apply tests args)
   (map (λ (test) 
          (list (remove-tests (apply (first test) args))
                (remove-tests (apply (second test) args))))
        tests))
 
-
+; (Listof Test) -> (Listof Test)
+; Inverts all of the tests.
 (define (invert-cascade tests)
   (map (λ (test)
          (list (invert (first test))
@@ -96,6 +103,9 @@
 
 (define current-cascade (make-parameter '()))
 
+; (Listof Test) Boolean (Listof Any) -> (Listof Test)
+; Either runs all deferred tests or applies the given arguments,
+; depending on the verify parameter
 (define (run-cascade-tests cascaded-tests verify args)
   (if verify 
       (if (not (test-cascade cascaded-tests args))
@@ -112,20 +122,27 @@
 (struct invfunc-wrap (func invfunc verify-inverse cascaded-tests defer-this)
   #:property prop:procedure
   (λ (func arg)
+    ; Either runs all deferred tests, or applies arg to each test
     (define tested-cascade (run-cascade-tests (invfunc-wrap-cascaded-tests func)
                                               (invfunc-wrap-verify-inverse func)
                                               (list arg)))
+    ; What is the ((inverse func)(func arg))?
+    ; This should be equal to arg by definition of inverse.
+    ; Only calculate this if it will be needed.
     (define this-test
       (if (or (invfunc-wrap-verify-inverse func) (invfunc-wrap-defer-this func))
           (parameterize [(current-cascade '())]
             ((invfunc-wrap-invfunc func) ((invfunc-wrap-func func) arg)))
           (void)))
+    ; If we are deferring these tests, cascade these tests downward
     (define next-cascade (if (invfunc-wrap-defer-this func)
                              (cons (list this-test arg) tested-cascade)
                              tested-cascade))
+    ; What is the result of the actual function?
     (define result
       (parameterize [(current-cascade next-cascade)]
         ((invfunc-wrap-func func) arg)))
+    ; If ((inverse func)(func arg)) does not equal arg, throw an error
     (if (and (invfunc-wrap-verify-inverse func)
              (not (equal? this-test arg)))
         (raise-arguments-error
@@ -138,6 +155,7 @@
          "given argument" arg "result" result "inverse applied to result" this-test)
         result))
   #:methods gen:equal+hash
+  ; Equality is based only on the functions themselves
   [(define (equal-proc a b equal?-recur)
      (and (equal?-recur (invfunc-wrap-func a) (invfunc-wrap-func b))
           (equal?-recur (invfunc-wrap-invfunc a) (invfunc-wrap-invfunc b))))
@@ -146,9 +164,14 @@
    (define (hash2-proc a hash-recur)
      (hash-recur (invfunc-wrap-func a)))])
 
+; A Function is a (func-wrap procedure boolean (Listof test))
+; This represents a normal lambda function, which may
+; or may not contain deferred tests
 (struct func-wrap (func verify-tests cascaded-tests)
   #:property prop:procedure
   (λ (func . args)
+    ; Either run all deferred tests or apply the given arguments
+    ; to the deferred tests
     (define next-cascade (run-cascade-tests
                           (func-wrap-cascaded-tests func)
                           (func-wrap-verify-tests func)
@@ -163,6 +186,9 @@
    (define (hash2-proc a hash-recur)
      (hash-recur (func-wrap-func a)))])
 
+; If you are returning a lambda function from an invertible function
+; and this lambda is a higher order function, use lambda/defer to properly
+; check for invertibility
 (define-syntax (lambda/defer stx)
   (syntax-parse stx
     [(_ (arg ...) body)
@@ -170,7 +196,8 @@
         #,(syntax/loc stx (un:lambda (arg ...) body))
         #f
         (current-cascade))]))
-  
+
+; When this lambda function is executed, also runs all deferred tests
 (define-syntax (lambda/nondefer stx)
   (syntax-parse stx
     [(_ (arg ...) body)
@@ -190,6 +217,8 @@
                      (current-cascade)
                      #f)]))
 
+; For higher-order invertible functions: defers the invertibility check
+; until an argument is provided to a function that this lambda returns
 (define-syntax (lambda-create-invertible/defer stx)
   (syntax-parse stx
     [(_ (arg) body invbody)
@@ -199,6 +228,7 @@
                      (current-cascade)
                      #t)]))
 
+; Shoots the invertibility checker with an audible BANG ("!")
 (define-syntax (lambda-create-invertible! stx)
   (syntax-parse stx
     [(_ (arg) body invbody)
@@ -230,6 +260,7 @@
         body
         (construct-inverse arg body arg)))]))
 
+; Gets the innermost identifier for a chain of operations
 (define-for-syntax get-innermost
   (syntax-parser
     [(_ (invertiblefunc funcarg))
@@ -237,11 +268,15 @@
     [(_ funcarg)
      #'funcarg]))
 
+; Any -> Boolean
+; Is the provided argument a procedure that takes 1 argument
 (define (proc-takes-one-arg func)
   (and (procedure? func) (procedure-arity-includes? func 1)))
 
 (define-for-syntax decl-top-err "Declarations must be at top level")
 
+; Declares two functions as inverses of each other using set!.
+; These must be top level forms and the identifiers must be settable.
 (define-syntax declare-invertible
   (syntax-parser
     [(_ func1:id func2:id)
@@ -276,6 +311,7 @@
       (syntax->datum #'correctarg) (syntax->datum #'arg))
      #'inner]))
 
+; Does a particular syntax object contain a specific identifier?
 (define-for-syntax (contains stx id-to-look-for) 
   (syntax-parse stx
     [(stuff ...) (ormap
@@ -290,7 +326,6 @@
     [(invfunc-wrap? func) (invfunc-wrap (invfunc-wrap-invfunc func)
                                         (invfunc-wrap-func func)
                                         (invfunc-wrap-verify-inverse func)
-                                        #;(invfunc-wrap-cascaded-tests func)
                                         (invert-cascade (invfunc-wrap-cascaded-tests func))
                                         (invfunc-wrap-defer-this func))]
     [else (error "Not an invertible function")]))

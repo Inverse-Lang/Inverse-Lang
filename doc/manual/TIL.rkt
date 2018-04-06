@@ -215,6 +215,11 @@ applying each argument to each test.
  is the postfix of that string. If it is not, an error will be thrown.
 }
 
+@deftogether[(@defproc[(number->string [num number?]) string?]
+               @defproc[(string->number [str string?]) number?])]{
+ Same as in racket, but declared invertible.
+}
+
 
 @section{Utils}
 
