@@ -73,9 +73,13 @@
  #:title "Future Plans"
  (item "/defer forms")
  'next
+ (item "Syntax location for more error messages")
+ 'next
+ (item "Static invertibility/type checking")
+ 'next
  (item "Provide invertible forms of more racket functions")
  'next
- (item "Item 3"))
+ (item "Matrix library"))
 
  
 
