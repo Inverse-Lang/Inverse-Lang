@@ -34,20 +34,28 @@
                        [invfout invfuncout])
          modes)]))))
 
+
+
+; [X <-> Y] -> [[X <-> X] <-> [Y <-> Y]]
+; Given a function that converts between two types of data,
+; create an adapter function that can turn a function that operates
+; on one type of data into a function that operates on the other type of data.
 (define (create-adapter adapter-func)
   (λ-create-invertible/defer (adapted)
+                              (λ-auto-invertible
+                              (arg)
+                              (f (adapter-func (adapted ((invert adapter-func) arg)))))
                              (λ-auto-invertible
                               (arg)
-                              (adapter-func (adapted ((invert adapter-func) arg))))
-                             (λ-auto-invertible
-                              (arg)
-                              ((invert adapter-func) (adapted (adapter-func arg))))))
+                              (f ((invert adapter-func) (adapted (adapter-func arg)))))))
 
+; Shorthand for (define name λ-create-invertible...)
 (define-syntax (define-create-invertible stx)
   (syntax-parse stx
     [(_ (name arg) body invbody)
      #`(define name #,(syntax/loc stx (λ-create-invertible (arg) body invbody)))]))
 
+; Shorthand for (define name λ-auto-invertible...)
 (define-syntax (define-auto-invertible stx)
   (syntax-parse stx
     [(_ (name arg) body)
@@ -66,6 +74,10 @@
 (define (self-invert func)
   (create-invertible func func))
 
+; [X] [X -> Boolean] [String] -> [X <-> X]
+; Lets a user set bounds on inputs and outputs of invertible functions
+; Produces a function that acts like an identity function, but
+; errors when the condition is not met.
 (define (check-condition condition [msg "Bounds condition is not met"])
   (self-invert
    (λ (arg)
@@ -78,3 +90,4 @@
 
 
 
+(define f (self-invert (λ (x) (displayln x) x)))
