@@ -60,14 +60,8 @@
   (andmap
    (λ (test)
      (with-handlers ([exn:fail? (λ (exn) (displayln (exn-message exn)) #f)])
-       (displayln "F1")
-       (displayln (invfunc-wrap-func (first test)))
        (define res1 (apply (invfunc-wrap-func (first test)) args))
-       (displayln "F2")
-       (displayln res1)
-       (displayln (invfunc-wrap-func (second test)))
        (define res2 (apply (invfunc-wrap-func (second test)) args))
-       (displayln "F3")
        (if (equal? res1 res2)
            #t
            (begin ((displayln (format "Deferred invertible check FAILED. Actual: ~a. Expected: ~a."
@@ -88,7 +82,7 @@
     [else func]))
 
 (define (cascade-apply tests args)
-  (map (λ (test) (displayln "B")
+  (map (λ (test) 
          (list (remove-tests (apply (first test) args))
                (remove-tests (apply (second test) args))))
        tests))
@@ -103,20 +97,17 @@
 (define current-cascade (make-parameter '()))
 
 (define (run-cascade-tests cascaded-tests verify args)
-  (if verify
-      (begin (displayln "C") (displayln cascaded-tests) 
-             (if (not (test-cascade cascaded-tests args))
-                 (raise-arguments-error
-                  'cascade-check
-                  (string-append "A deferred invertible test has failed. " 
-                                 "If this function was produced as the result of an invertible function, "
-                                 "the function that produced this was itself not invertible")
-                  "given argument(s)" args)
-                 (begin (displayln "D") '())))
-      (begin (displayln "E1")
-             (let ((res (cascade-apply cascaded-tests args)))
-               (displayln "E2")
-               res))))
+  (if verify 
+      (if (not (test-cascade cascaded-tests args))
+          (raise-arguments-error
+           'cascade-check
+           (string-append "A deferred invertible test has failed. " 
+                          "If this function was produced as the result of an invertible function, "
+                          "the function that produced this was itself not invertible")
+           "given argument(s)" args)
+          '())
+      (let ((res (cascade-apply cascaded-tests args)))
+        res)))
 
 (struct invfunc-wrap (func invfunc verify-inverse cascaded-tests defer-this)
   #:property prop:procedure
@@ -124,9 +115,6 @@
     (define tested-cascade (run-cascade-tests (invfunc-wrap-cascaded-tests func)
                                               (invfunc-wrap-verify-inverse func)
                                               (list arg)))
-    (displayln "G0")
-    (displayln arg)
-    (displayln ((invfunc-wrap-func func) arg))
     (define this-test
       (if (or (invfunc-wrap-verify-inverse func) (invfunc-wrap-defer-this func))
           (parameterize [(current-cascade '())]
@@ -135,13 +123,9 @@
     (define next-cascade (if (invfunc-wrap-defer-this func)
                              (cons (list this-test arg) tested-cascade)
                              tested-cascade))
-    (displayln "G1")
-    (displayln (invfunc-wrap-func func))
     (define result
       (parameterize [(current-cascade next-cascade)]
-        (displayln next-cascade)
         ((invfunc-wrap-func func) arg)))
-    (displayln "G2")
     (if (and (invfunc-wrap-verify-inverse func)
              (not (equal? this-test arg)))
         (raise-arguments-error

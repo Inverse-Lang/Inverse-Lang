@@ -42,12 +42,12 @@
 ; on one type of data into a function that operates on the other type of data.
 (define (create-adapter adapter-func)
   (λ-create-invertible/defer (adapted)
-                              (λ-auto-invertible
-                              (arg)
-                              (f (adapter-func (adapted ((invert adapter-func) arg)))))
                              (λ-auto-invertible
                               (arg)
-                              (f ((invert adapter-func) (adapted (adapter-func arg)))))))
+                              (adapter-func (adapted ((invert adapter-func) arg))))
+                             (λ-auto-invertible
+                              (arg)
+                              ((invert adapter-func) (adapted (adapter-func arg))))))
 
 ; Shorthand for (define name λ-create-invertible...)
 (define-syntax (define-create-invertible stx)
@@ -87,7 +87,3 @@
           'check-bounds
           msg
           "given" arg)))))
-
-
-
-(define f (self-invert (λ (x) (displayln x) x)))
